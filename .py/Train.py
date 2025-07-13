@@ -9,6 +9,7 @@ from sklearn.model_selection import KFold
 import time
 import warnings
 warnings.filterwarnings('ignore')
+from multiprocessing import Pool, cpu_count
 
 # 添加d2l相关函数
 class d2l:
@@ -70,17 +71,17 @@ def get_net(in_features):
     return net
 
 def get_advanced_net(in_features, hidden_sizes=[256, 128, 64], dropout_rate=0.3):
-    """
-    创建更复杂的深度神经网络
+    # """
+    # 创建更复杂的深度神经网络
     
-    参数:
-    in_features: 输入特征数量
-    hidden_sizes: 隐藏层大小列表
-    dropout_rate: Dropout比率
+    # 参数:
+    # in_features: 输入特征数量
+    # hidden_sizes: 隐藏层大小列表
+    # dropout_rate: Dropout比率
     
-    返回:
-    net: 深度神经网络
-    """
+    # 返回:
+    # net: 深度神经网络
+    # """
     layers = []
     
     # 输入层到第一个隐藏层
@@ -183,6 +184,23 @@ def train(net, train_features, train_labels, test_features, test_labels,
     
     return train_ls, test_ls
 
+def train_one_fold_parallel(args):
+    i, k, X_train, y_train, num_epochs, lr, weight_decay, batch_size, model_type = args
+    data = get_k_fold_data(k, i, X_train, y_train)
+    X_train_fold, y_train_fold, X_valid_fold, y_valid_fold = data
+
+    if model_type == 'linear':
+        net = get_net(X_train.shape[1])
+    else:
+        net = get_advanced_net(X_train.shape[1])
+
+    train_ls, valid_ls = train(
+        net, X_train_fold, y_train_fold, X_valid_fold, y_valid_fold,
+        num_epochs, lr, weight_decay, batch_size
+    )
+
+    return train_ls[-1], valid_ls[-1]
+
 def get_k_fold_data(k, i, X, y):
     """
     获取K折交叉验证的第i折数据
@@ -256,48 +274,21 @@ def k_fold(k, X_train, y_train, num_epochs, learning_rate, weight_decay,
 
 def k_fold_cross_validation(k, X_train, y_train, num_epochs, learning_rate, 
                           weight_decay, batch_size, model_type='linear'):
-    """
-    K折交叉验证
-    
-    参数:
-    k: 折数
-    X_train: 训练特征
-    y_train: 训练标签
-    num_epochs: 训练轮数
-    learning_rate: 学习率
-    weight_decay: 权重衰减
-    batch_size: 批次大小
-    model_type: 模型类型 ('linear' 或 'advanced')
-    
-    返回:
-    train_l_sum: 平均训练损失
-    valid_l_sum: 平均验证损失
-    """
-    train_l_sum, valid_l_sum = 0, 0
-    
-    for i in range(k):
-        data = get_k_fold_data(k, i, X_train, y_train)
-        X_train_fold, y_train_fold, X_valid_fold, y_valid_fold = data
-        
-        # 创建模型
-        if model_type == 'linear':
-            net = get_net(X_train.shape[1])
-        else:
-            net = get_advanced_net(X_train.shape[1])
-        
-        # 训练模型
-        train_ls, valid_ls = train(
-            net, X_train_fold, y_train_fold, X_valid_fold, y_valid_fold,
-            num_epochs, learning_rate, weight_decay, batch_size
-        )
-        
-        train_l_sum += train_ls[-1]
-        valid_l_sum += valid_ls[-1]
-        
-        print(f'Fold {i + 1}, Train log RMSE: {float(train_ls[-1]):.6f}, '
-              f'Valid log RMSE: {float(valid_ls[-1]):.6f}')
-    
-    return train_l_sum / k, valid_l_sum / k
+    print(f"开始并行训练，共{k}折，使用 {min(cpu_count(), k)} 个进程...")
+
+    args_list = [(i, k, X_train, y_train, num_epochs, learning_rate, weight_decay, batch_size, model_type)
+                 for i in range(k)]
+
+    with Pool(processes=min(cpu_count(), k)) as pool:
+        results = pool.map(train_one_fold_parallel, args_list)
+
+    train_losses = [r[0] for r in results]
+    valid_losses = [r[1] for r in results]
+
+    for i, (train_l, valid_l) in enumerate(results):
+        print(f"Fold {i + 1}, Train log RMSE: {train_l:.6f}, Valid log RMSE: {valid_l:.6f}")
+
+    return sum(train_losses) / k, sum(valid_losses) / k
 
 def train_and_predict(train_features, test_features, train_labels, test_data,
                      num_epochs, lr, weight_decay, batch_size, model_type='linear'):
