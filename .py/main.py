@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Kaggle房价预测项目 - 主入口文件
-
-这是一个完整的机器学习项目，用于预测房价。
-项目包含数据下载、数据预处理、模型训练和预测等完整流程。
-
-作者: AI Assistant
-日期: 2024
-"""
 
 import os
 import sys
