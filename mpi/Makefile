@@ -1,33 +1,32 @@
 CC = mpicc
-CFLAGS = -Wall -Wextra -O2 -std=c99
+CFLAGS = -Wall -O2 -std=c99
 LDFLAGS = -lm
+
 TARGET = house_price_prediction_mpi
+SOURCES = main_mpi.c csv_parser.c data_preprocessing_mpi.c linear_regression_mpi.c
+OBJECTS = $(SOURCES:.c=.o)
 
-# 源文件和目标文件
-SRC = main_mpi.c csv_parser.c data_preprocessing_mpi.c linear_regression_mpi.c
-OBJ = $(SRC:.c=.o)
+.PHONY: all clean run test
 
-# 默认目标
 all: $(TARGET)
 
-# 链接目标文件生成可执行文件
-$(TARGET): $(OBJ)
-	$(CC) $(OBJ) -o $@ $(LDFLAGS)
+$(TARGET): $(OBJECTS)
+	$(CC) $(OBJECTS) -o $(TARGET) $(LDFLAGS)
 
-# 编译源文件生成目标文件
 %.o: %.c house_price_prediction_mpi.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# 清理目标文件和可执行文件
 clean:
-	rm -f $(OBJ) $(TARGET)
+	rm -f *.o $(TARGET)
 
-# 运行程序
 run: $(TARGET)
-	mpirun -n 4 ./$(TARGET)
+	mpirun -np 4 ./$(TARGET)
 
-# 调试运行
+test: $(TARGET)
+	mpirun -np 2 ./$(TARGET) --quick
+
+install: $(TARGET)
+	cp $(TARGET) /usr/local/bin/
+
+debug: CFLAGS += -g -DDEBUG
 debug: $(TARGET)
-	mpirun -n 2 ./$(TARGET) --quick
-
-.PHONY: all clean run debug

@@ -27,12 +27,11 @@ typedef struct {
     int feature_count;
 } LinearRegressionModel;
 
-// MPI相关结构
+// MPI信息结构
 typedef struct {
     int rank;
     int size;
-    int local_start;
-    int local_count;
+    MPI_Comm comm;
 } MPIInfo;
 
 // CSV文件处理函数
@@ -40,27 +39,30 @@ Dataset* load_csv(const char* filename, int has_label);
 void free_dataset(Dataset* dataset);
 int count_features(const char* filename);
 
-// 数据预处理函数
-// 数据预处理函数
+// 数据预处理函数（MPI版本）
 void normalize_features_mpi(Dataset* dataset, MPIInfo* mpi_info);
 void handle_missing_values_mpi(Dataset* dataset, MPIInfo* mpi_info);
-Dataset* distribute_data(Dataset* dataset, MPIInfo* mpi_info);
+Dataset* distribute_dataset_mpi(Dataset* full_dataset, MPIInfo* mpi_info);
+Dataset* gather_predictions_mpi(Dataset* local_dataset, MPIInfo* mpi_info);
 
-// 线性回归模型函数
+// 线性回归模型函数（MPI版本）
 LinearRegressionModel* create_linear_regression_model(int feature_count);
-void train_linear_regression_mpi(LinearRegressionModel* model, Dataset* local_data, 
-                                double learning_rate, int epochs, double weight_decay, MPIInfo* mpi_info);
+void train_linear_regression_mpi(LinearRegressionModel* model, Dataset* train_data, 
+                               double learning_rate, int epochs, double weight_decay, MPIInfo* mpi_info);
 double predict(LinearRegressionModel* model, double* features);
-double calculate_rmse_mpi(LinearRegressionModel* model, Dataset* local_data, MPIInfo* mpi_info);
+double calculate_rmse_mpi(LinearRegressionModel* model, Dataset* dataset, MPIInfo* mpi_info);
 void free_linear_regression_model(LinearRegressionModel* model);
 
-// MPI辅助函数
-void init_mpi_info(MPIInfo* mpi_info, int total_samples);
-void broadcast_model(LinearRegressionModel* model, int root, MPIInfo* mpi_info);
-void gather_predictions(double* local_predictions, int local_count, 
-                       double* global_predictions, int* counts, int* displs, MPIInfo* mpi_info);
+// K折交叉验证函数（MPI版本）
+double k_fold_cross_validation_mpi(Dataset* dataset, int k, double learning_rate, 
+                                 int epochs, double weight_decay, MPIInfo* mpi_info);
 
 // 文件操作函数
 int save_predictions(const char* filename, double* predictions, int* ids, int count);
 
-#endif
+// 工具函数
+double* copy_features(double* features, int feature_count);
+void shuffle_dataset(Dataset* dataset);
+void broadcast_model_mpi(LinearRegressionModel* model, MPIInfo* mpi_info);
+
+#endif // HOUSE_PRICE_PREDICTION_MPI_H
