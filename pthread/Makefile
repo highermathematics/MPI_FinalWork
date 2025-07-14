@@ -25,16 +25,16 @@ $(TARGET): $(OBJECTS)
 %.o: %.c house_price_prediction_pthread.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# 清理
+#清理
 clean:
-	del /Q *.o $(TARGET).exe 2>nul || true
+	rm -f *.o $(TARGET)
 
 # 运行
 run: $(TARGET)
-	.\$(TARGET).exe --threads 4
+	./$(TARGET) --threads 4
 
 # 快速运行
 quick: $(TARGET)
-	.\$(TARGET).exe --quick --threads 8
+	./$(TARGET) --quick --threads 8
 
 .PHONY: all clean run quick
