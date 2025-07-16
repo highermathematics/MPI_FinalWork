@@ -1,6 +1,7 @@
 # 北京化工大学并行程序设计大作业
 
 > [题目](https://www.kaggle.com/c/house-prices-advanced-regression-techniques)
+
 > 该项目思路来源于[d2l-ai](https://github.com/d2l-ai/d2l-zh/blob/master/chapter_multilayer-perceptrons/kaggle-house-price.md)
 
 **.py** 文件夹下是将源代码优化之后的结果（已改为并行程序）
